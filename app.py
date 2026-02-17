@@ -4,28 +4,29 @@ import plotly.express as px
 import os
 import io
 import time
-import requests # IMPORTANTE: Asegúrate de tener esta librería instalada (pip install requests)
+import requests 
 from datetime import datetime
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Tablero SARE", layout="wide", page_icon="📊")
 
+# --- ⚠️ URL PÚBLICA DE NGROK ⚠️ ---
+# Nota: Asegúrate de que no haya una barra (/) al final de esta URL.
+URL_API = "https://unbased-pallidly-donn.ngrok-free.dev"
 
-# ¡No pongas una barra "/" al final de la URL!
-URL_API = "http://127.0.0.1:8000/"
-
-# --- FUNCIÓN DE ACTUALIZACIÓN (AHORA VÍA NGROK) ---
+# --- FUNCIÓN DE ACTUALIZACIÓN (VÍA NGROK) ---
 def ejecutar_actualizacion():
     """Llama a la PC local vía Ngrok para que ejecute el RPA y devuelva el Excel."""
     status_box = st.status("🚀 Conectando con la PC local vía Ngrok...", expanded=True)
     try:
         status_box.write("🤖 Solicitando ejecución del robot en la red interna...")
         
-        # El header 'ngrok-skip-browser-warning' es crucial para cuentas Ngrok gratuitas
-        headers = {"ngrok-skip-browser-warning": "true"}
+        # El header 'ngrok-skip-browser-warning' es CRUCIAL para saltarse la pantalla azul de Ngrok
+        headers = {
+            "ngrok-skip-browser-warning": "true"
+        }
         
-        # Hacemos la llamada al endpoint de FastAPI que creaste en api_local.py
-        # Le damos un timeout largo (5 minutos) porque el RPA toma tiempo en navegar y descargar
+        # Hacemos la llamada al endpoint de FastAPI 
         respuesta = requests.get(f"{URL_API}/actualizar_datos", headers=headers, timeout=300)
         
         if respuesta.status_code == 200:
@@ -40,6 +41,7 @@ def ejecutar_actualizacion():
             st.rerun() # Recarga la página para mostrar los datos nuevos
         else:
             status_box.write(f"Código de error del servidor: {respuesta.status_code}")
+            status_box.write(f"Detalle del error: {respuesta.text}") # Esto ayuda a ver si Ngrok está bloqueando algo
             status_box.update(label="❌ Error al procesar en el servidor local", state="error")
             
     except requests.exceptions.ConnectionError:
