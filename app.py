@@ -102,7 +102,7 @@ if os.path.exists(FILE_PATH):
         col1, col2 = st.columns(2)
 
         with col1:
-            st.header("⚖️ SECCIÓN RECLAMOS")
+            st.header("SECCIÓN RECLAMOS")
             if not df_rec.empty:
                 vencidos = len(df_rec[df_rec['Estado'] == 'Vencido'])
                 st.metric("Total (Filtrado)", len(df_rec), f"{vencidos} Vencidos", delta_color="inverse")
@@ -117,7 +117,7 @@ if os.path.exists(FILE_PATH):
                 st.warning("No hay datos de Reclamos para mostrar con estos filtros.")
 
         with col2:
-            st.header("📝 REQUERIMIENTOS")
+            st.header("REQUERIMIENTOS")
             if not df_req.empty:
                 # Requerimientos se mantiene con la regla estándar de 15 días
                 st.metric("Total General", len(df_req))
@@ -136,3 +136,4 @@ if os.path.exists(FILE_PATH):
         st.error(f"Error crítico al procesar: {e}")
 else:
     st.error("⚠️ Archivo no encontrado. Ejecuta el Robot desde el panel lateral.")
+
