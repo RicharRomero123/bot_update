@@ -5,13 +5,13 @@ import os
 import io
 import time
 import requests 
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Tablero SARE", layout="wide", page_icon="📊")
 
 # --- ⚠️ URL PÚBLICA DE NGROK ⚠️ ---
-# Nota: Asegúrate de que no haya una barra (/) al final de esta URL.
+# ¡No pongas una barra "/" al final de la URL!
 URL_API = "https://unbased-pallidly-donn.ngrok-free.dev"
 
 # --- FUNCIÓN DE ACTUALIZACIÓN (VÍA NGROK) ---
@@ -21,12 +21,13 @@ def ejecutar_actualizacion():
     try:
         status_box.write("🤖 Solicitando ejecución del robot en la red interna...")
         
-        # El header 'ngrok-skip-browser-warning' es CRUCIAL para saltarse la pantalla azul de Ngrok
+        # El header 'ngrok-skip-browser-warning' es crucial para cuentas Ngrok gratuitas
         headers = {
             "ngrok-skip-browser-warning": "true"
         }
         
-        # Hacemos la llamada al endpoint de FastAPI 
+        # Hacemos la llamada al endpoint de FastAPI que creaste en api_local.py
+        # Le damos un timeout largo (5 minutos) porque el RPA toma tiempo en navegar y descargar
         respuesta = requests.get(f"{URL_API}/actualizar_datos", headers=headers, timeout=300)
         
         if respuesta.status_code == 200:
@@ -41,7 +42,6 @@ def ejecutar_actualizacion():
             st.rerun() # Recarga la página para mostrar los datos nuevos
         else:
             status_box.write(f"Código de error del servidor: {respuesta.status_code}")
-            status_box.write(f"Detalle del error: {respuesta.text}") # Esto ayuda a ver si Ngrok está bloqueando algo
             status_box.update(label="❌ Error al procesar en el servidor local", state="error")
             
     except requests.exceptions.ConnectionError:
@@ -67,8 +67,16 @@ FILE_PATH = "Reporte_General_Sare.xlsx"
 
 # --- FUNCIONES AUXILIARES ---
 def obtener_info_archivo(ruta):
+    # 1. Obtiene el timestamp absoluto del archivo Excel en la nube
     timestamp = os.path.getmtime(ruta)
-    fecha_obj = datetime.fromtimestamp(timestamp)
+    
+    # 2. Convierte ese tiempo a la zona horaria universal (UTC)
+    dt_utc = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+    
+    # 3. Forzamos la zona horaria a la de Perú (UTC -5)
+    tz_peru = timezone(timedelta(hours=-5))
+    fecha_obj = dt_utc.astimezone(tz_peru)
+    
     return fecha_obj.strftime("%d/%m/%Y"), fecha_obj.strftime("%H:%M:%S")
 
 def generar_tabla_comparativa(df, col_responsable):
@@ -91,7 +99,7 @@ def convertir_df_a_excel(df):
 if os.path.exists(FILE_PATH):
     try:
         fecha_arch, hora_arch = obtener_info_archivo(FILE_PATH)
-        st.info(f"📅 Fecha de Corte: **{fecha_arch}** | 🕒 Hora: **{hora_arch}**")
+        st.info(f"📅 Fecha de Corte: **{fecha_arch}** | 🕒 Hora de última actualización: **{hora_arch}**")
         st.markdown("---")
 
         xls = pd.ExcelFile(FILE_PATH)
