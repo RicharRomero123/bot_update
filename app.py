@@ -78,19 +78,27 @@ if os.path.exists(FILE_PATH):
         df_rec = pd.read_excel(xls, 'Data_Reclamos') if 'Data_Reclamos' in xls.sheet_names else pd.DataFrame()
         df_req = pd.read_excel(xls, 'Data_Requerimientos') if 'Data_Requerimientos' in xls.sheet_names else pd.DataFrame()
 
-        # --- FILTRO POR PRODUCTO (SOLO PARA RECLAMOS) ---
-        col_producto = "Producto/Servicio - Proced./Admin."
-        
+        # --- FILTROS (SOLO PARA RECLAMOS) ---
         if not df_rec.empty:
-            # Verificamos si la columna existe para evitar el error que mencionaste
+            
+            # 1. FILTRO POR PRODUCTO
+            col_producto = "Producto/Servicio - Proced./Admin."
             if col_producto in df_rec.columns:
-                opciones = sorted(df_rec[col_producto].unique().tolist())
-                seleccion = st.sidebar.multiselect("Filtrar Reclamos por Producto:", opciones, default=opciones)
-                
-                # Aplicamos el filtro de Producto
-                df_rec = df_rec[df_rec[col_producto].isin(seleccion)]
+                # El .dropna() evita errores si hay celdas vacías en el Excel
+                opciones_prod = sorted(df_rec[col_producto].dropna().unique().tolist())
+                seleccion_prod = st.sidebar.multiselect("Filtrar por Producto:", opciones_prod, default=opciones_prod)
+                df_rec = df_rec[df_rec[col_producto].isin(seleccion_prod)]
             else:
                 st.sidebar.warning(f"⚠️ No se halló la columna '{col_producto}' en Reclamos.")
+
+            # 2. FILTRO POR FASE (NUEVO)
+            col_fase = "Fase"
+            if col_fase in df_rec.columns:
+                opciones_fase = sorted(df_rec[col_fase].dropna().unique().tolist())
+                seleccion_fase = st.sidebar.multiselect("Filtrar por Fase:", opciones_fase, default=opciones_fase)
+                df_rec = df_rec[df_rec[col_fase].isin(seleccion_fase)]
+            else:
+                st.sidebar.warning(f"⚠️ No se halló la columna '{col_fase}' en Reclamos.")
 
             # --- RECALCULAR ESTADO SEGÚN SLIDER (SOLO PARA RECLAMOS) ---
             if 'Días Demora' in df_rec.columns:
@@ -119,7 +127,7 @@ if os.path.exists(FILE_PATH):
         with col2:
             st.header("REQUERIMIENTOS")
             if not df_req.empty:
-                # Requerimientos se mantiene con la regla estándar de 15 días
+                # Requerimientos se mantiene con la regla estándar
                 st.metric("Total General", len(df_req))
                 tabla_req = generar_tabla_comparativa(df_req, 'Asignado a:')
                 st.dataframe(tabla_req, use_container_width=True)
@@ -136,4 +144,3 @@ if os.path.exists(FILE_PATH):
         st.error(f"Error crítico al procesar: {e}")
 else:
     st.error("⚠️ Archivo no encontrado. Ejecuta el Robot desde el panel lateral.")
-
